@@ -7,5 +7,6 @@
                  [aleph "0.3.0-rc2"]
                  [com.datomic/datomic-free "0.8.4020.26"]
                  [com.taoensso/timbre "2.4.1"]
-                 [ns-tracker "0.2.1"]]
+                 [ns-tracker "0.2.1"]
+                 [org.clojure/tools.nrepl "0.2.3"]]
   :main mud.core)
