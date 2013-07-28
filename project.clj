@@ -8,5 +8,6 @@
                  [com.datomic/datomic-free "0.8.4020.26"]
                  [com.taoensso/timbre "2.4.1"]
                  [ns-tracker "0.2.1"]
-                 [org.clojure/tools.nrepl "0.2.3"]]
+                 [org.clojure/tools.nrepl "0.2.3"]
+                 [instaparse "1.2.2"]]
   :main mud.core)
