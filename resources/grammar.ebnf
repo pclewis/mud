@@ -1,0 +1,28 @@
+entity = argument
+text = #'.*'
+
+argument = argument_
+<argument_> = string | quoted-string | argument_ ( string | quoted-string )
+
+<quoted-string> = single-quoted-string | double-quoted-string
+
+<single-quoted-string> = <single-quote> not-single-quote* <single-quote>
+<double-quoted-string> = <double-quote> ( escaped-char | not-double-quote )* <double-quote>
+
+<string> = ( escaped-char | string-component )+
+
+<string-component> = #'[^\'\"\s]'
+
+<single-quote> = "'"
+<double-quote> = '"'
+<backslash> = '\\'
+
+<not-single-quote> = #'[^\']'
+<not-double-quote> = #'[^\"]'
+
+<escaped-char> = <backslash> #'.'
+
+<whitespace> = #'\s'
+
+<word> = letter | word letter | word ( '_' | '-' )
+<letter> = #'[a-zA-Z]'

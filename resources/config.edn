@@ -1,0 +1,4 @@
+{:db/uri "datomic:mem://test"
+ :port 34567
+ :nrepl/enabled? true
+ :nrepl/port 37888}

@@ -1,0 +1,12 @@
+{:entity {:name        [:string]
+          :description [:string]
+          :in          [:ref "Entity containing this entity, for example a container or room"]
+          :type        [:enum [:world :room :exit :object :creature]]}
+ :world {:time [:long]}
+ :exit {:target [:ref]}
+ :event {:type [:enum [:speech]]
+         :source [:ref]
+         :content [:string]}
+ :user {:email [:string :unique-value]
+        :password [:string]
+        :characters [:ref :many]}}
