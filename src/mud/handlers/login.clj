@@ -18,15 +18,14 @@
 
 (defn login
   [conn name password]
-  (let [accts (db/q '[:find ?u :in $ ?e ?p :where [?u :user/email ?e
-                                                   ?u :user/password ?p]]
+  (let [accts (db/q '[:find ?u :in $ ?e ?p
+                      :where [?u :user/email ?e]
+                      [?u :user/password ?p]]
                     (db/db (:db/c conn))
                     name password)] ;; FIXME
     (if (empty? accts)
       [:send "Nope."]
-      [:transition :char-select {:user (first accts)}])
-    )
-  )
+      [:transition :char-select {:user (ffirst accts)}])))
 
 (defn huh
   [conn parse]

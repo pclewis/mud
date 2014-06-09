@@ -9,4 +9,4 @@
          :content [:string]}
  :user {:email [:string :unique-value]
         :password [:string]
-        :characters [:ref :many]}}
+        :character [:ref :many]}}

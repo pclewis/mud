@@ -3,6 +3,7 @@
             [taoensso.timbre :as log]
             [mud.handlers.login :as login]
             [mud.handlers.char-select :as cs]
+            [mud.handlers.game :as game]
             [mud.db :as db]
             [datomic.api :as d]))
 
@@ -19,13 +20,25 @@
 (def welcome-message
   "hi\nUsername: ")
 
+;; lambdas so ns reload works
 (def handlers
   {:login #(login/handler %1 %2)
-   :char-select #(cs/handler %1 %2)})
+   :char-select #(cs/handler %1 %2)
+   :game #(game/handler %1 %2)})
 
 (defn send
   [conn message]
   (lamina/enqueue (:channel conn) (str message "\n")))
+
+(defn exec-action
+  [connection action]
+  (case (first action)
+    :send (send @connection (second action))
+    :transact @(d/transact (:db/c @connection) (rest action))
+    :transition (dosync
+                 (alter connection into
+                        (merge (get action 2)
+                               {:handler ((second action) handlers)})))))
 
 (defn receive-message
   [connection message]
@@ -34,12 +47,9 @@
     (try
       (let [action ((:handler @connection) @connection message)]
         (when action
-          (case (first action)
-            :send (send @connection (second action))
-            :transition (dosync
-                         (alter connection into
-                                (merge (get action 2)
-                                       {:handler ((second action) handlers)}))))))
+          (if (coll? (first action))
+            (doall (map (partial exec-action connection) action))
+            (exec-action connection action))))
       (catch Exception e
         (log/error e "handler threw exception")))))
 
