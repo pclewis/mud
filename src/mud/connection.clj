@@ -4,27 +4,20 @@
             [mud.handlers.login :as login]
             [mud.handlers.char-select :as cs]
             [mud.handlers.game :as game]
+            [mud.messages :as msg]
             [mud.db :as db]
-            [datomic.api :as d]))
-
-(comment
-  (defn game-handler
-    [connection message]
-    (lamina/enqueue (:channel @connection) (str "You " message ".\n"))))
-
-(comment (defn login-handler
-           [connection message]
-           (alter connection into {:handler game-handler :name message})
-           (log/info "logged in: " message)))
-
-(def welcome-message
-  "hi\nUsername: ")
+            [datomic.api :as d]
+            [clojure.java.io :as io]))
 
 ;; lambdas so ns reload works
 (def handlers
   {:login #(login/handler %1 %2)
    :char-select #(cs/handler %1 %2)
    :game #(game/handler %1 %2)})
+
+(defn send-msg
+  [channel & m]
+  (lamina/enqueue channel (str (apply msg/fmt m) "\n")))
 
 (defn send
   [conn message]
@@ -34,6 +27,7 @@
   [connection action]
   (case (first action)
     :send (send @connection (second action))
+    :msg (send-msg (:channel @connection) (second action) (drop 2 action))
     :transact @(d/transact (:db/c @connection) (rest action))
     :transition (dosync
                  (alter connection into
@@ -66,4 +60,4 @@
                          :db/c (d/connect dburi)})]
     (lamina/receive-all channel #(receive-message connection %))
     (lamina/on-closed channel #(close-connection connection)))
-  (lamina/enqueue channel welcome-message))
+  (send-msg channel :welcome))
