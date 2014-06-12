@@ -71,8 +71,9 @@
 
 (defn step-connection
   [conn db]
+  (log/debugf "Stepping from %d to %d" (dec (d/as-of-t db)) (d/as-of-t db))
   (doseq [event-ent (d/q '[:find ?e :where [?e :event/type _]]
-                          (d/since db (dec (d/basis-t db))))
+                          (d/since db (dec (d/as-of-t db))))
           :let [event (d/entity db (first event-ent))]]
     (case (:event/type event)
       :event.type/speech (send-msg (:channel @conn) :say/other
@@ -85,8 +86,8 @@
         new-db (d/db (:db/c @conn))
         old-t (d/basis-t old-db)
         new-t (d/basis-t new-db)]
-    (send @conn "tick")
     (when (< old-t new-t)
+      (log/debugf "Tick conn, old t = %d, new t = %d" old-t new-t)
       (doseq [t (range old-t new-t)]
         (step-connection conn (d/as-of new-db (inc t))))
       (dosync (alter conn assoc :db new-db)))))
