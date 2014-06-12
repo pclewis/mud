@@ -39,4 +39,13 @@
     (log/infof "Listening on port %d." (:port config))
     (when (:nrepl/enabled? config)
       (nrepl/start-server :port (:nrepl/port config))
-      (log/infof "nrepl listening on port %d." (:nrepl/port config)))))
+      (log/infof "nrepl listening on port %d." (:nrepl/port config)))
+    (deref
+     (future
+       (loop []
+         (Thread/sleep 2000)
+         (try
+           (connection/update-connections)
+           (catch Throwable t
+             (log/error t "Caught exception during tick")))
+         (recur))))))

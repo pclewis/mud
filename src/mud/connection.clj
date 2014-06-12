@@ -9,6 +9,8 @@
             [datomic.api :as d]
             [clojure.java.io :as io]))
 
+(def connections (atom []))
+
 ;; lambdas so ns reload works
 (def handlers
   {:login #(login/handler %1 %2)
@@ -37,7 +39,9 @@
 (defn receive-message
   [connection message]
   (if (nil? message)
-    (log/info "Client disconnected " (:client-info @connection))
+    (do
+      (log/info "Client disconnected " (:client-info @connection))
+      (swap! connections (partial filterv (complement #{connection}))))
     (try
       (let [action ((:handler @connection) @connection message)]
         (when action
@@ -54,10 +58,40 @@
 (defn new-connection
   [channel client-info dburi]
   (log/info "Client connected " client-info)
-  (let [connection (ref {:client-info client-info
+  (let [dbc (d/connect dburi)
+        connection (ref {:client-info client-info
                          :channel channel
                          :handler (:login handlers)
-                         :db/c (d/connect dburi)})]
+                         :db/c dbc
+                         :db (d/db dbc)})]
+    (swap! connections conj connection)
     (lamina/receive-all channel #(receive-message connection %))
     (lamina/on-closed channel #(close-connection connection)))
   (send-msg channel :welcome))
+
+(defn step-connection
+  [conn db]
+  (doseq [event-ent (d/q '[:find ?e :where [?e :event/type _]]
+                          (d/since db (dec (d/basis-t db))))
+          :let [event (d/entity db (first event-ent))]]
+    (case (:event/type event)
+      :event.type/speech (send-msg (:channel @conn) :say/other
+                                   {:source (:entity/name (:event/source event))
+                                    :message (:event/content event)}))))
+
+(defn update-connection
+  [conn]
+  (let [old-db (:db @conn)
+        new-db (d/db (:db/c @conn))
+        old-t (d/basis-t old-db)
+        new-t (d/basis-t new-db)]
+    (send @conn "tick")
+    (when (< old-t new-t)
+      (doseq [t (range old-t new-t)]
+        (step-connection conn (d/as-of new-db (inc t))))
+      (dosync (alter conn assoc :db new-db)))))
+
+(defn update-connections
+  []
+  (doseq [conn @connections]
+    (update-connection conn)))

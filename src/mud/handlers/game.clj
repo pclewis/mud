@@ -2,10 +2,14 @@
   (:require [mud.command-parser :as cp]))
 
 (defn say [conn text]
-  [:send (str "You say, \"" text "\"")])
+  [:transact
+   {:db/id #db/id[:db.part/tx]
+    :event/type :event.type/speech
+    :event/source (:character conn)
+    :event/content text}])
 
 (defn huh [conn p]
-  [:send (str "Huh?")])
+  [:msg :huh])
 
 (def handler
   (cp/create-handler [say] huh {:text str}))
